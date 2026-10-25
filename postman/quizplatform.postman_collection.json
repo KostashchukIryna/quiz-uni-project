@@ -1,0 +1,396 @@
+{
+  "info": {
+    "name": "QuizPlatform Lab 1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1 token host1",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{kc}}/realms/quizplatform/protocol/openid-connect/token",
+          "host": [
+            "{{kc}}/realms/quizplatform/protocol/openid-connect/token"
+          ]
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "client_id",
+              "value": "quiz-postman"
+            },
+            {
+              "key": "username",
+              "value": "host1"
+            },
+            {
+              "key": "password",
+              "value": "host123"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+              "pm.environment.set(\"token_host\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 token admin1",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{kc}}/realms/quizplatform/protocol/openid-connect/token",
+          "host": [
+            "{{kc}}/realms/quizplatform/protocol/openid-connect/token"
+          ]
+        },
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "password"
+            },
+            {
+              "key": "client_id",
+              "value": "quiz-postman"
+            },
+            {
+              "key": "username",
+              "value": "admin1"
+            },
+            {
+              "key": "password",
+              "value": "admin123"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+              "pm.environment.set(\"token_admin\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 POST without token -> 401",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/quizzes",
+          "host": [
+            "{{base}}/api/quizzes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Java Basics\",\n  \"description\": \"Вікторина для першого заняття\",\n  \"status\": \"DRAFT\",\n  \"questions\": [\n    {\n      \"text\": \"Яка версія Java ввела virtual threads як фінальну фічу?\",\n      \"timeLimitSeconds\": 15,\n      \"points\": 1000,\n      \"correctOption\": 1,\n      \"options\": [\n        \"Java 17\",\n        \"Java 21\",\n        \"Java 11\",\n        \"Java 8\"\n      ]\n    }\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 GET list (public)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/api/quizzes",
+          "host": [
+            "{{base}}/api/quizzes"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 POST create (host)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_host}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/quizzes",
+          "host": [
+            "{{base}}/api/quizzes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Java Basics\",\n  \"description\": \"Вікторина для першого заняття\",\n  \"status\": \"DRAFT\",\n  \"questions\": [\n    {\n      \"text\": \"Яка версія Java ввела virtual threads як фінальну фічу?\",\n      \"timeLimitSeconds\": 15,\n      \"points\": 1000,\n      \"correctOption\": 1,\n      \"options\": [\n        \"Java 17\",\n        \"Java 21\",\n        \"Java 11\",\n        \"Java 8\"\n      ]\n    }\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+              "pm.environment.set(\"quiz_id\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 GET by id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/api/quizzes/{{quiz_id}}",
+          "host": [
+            "{{base}}/api/quizzes/{{quiz_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 PUT update (host)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_host}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/quizzes/{{quiz_id}}",
+          "host": [
+            "{{base}}/api/quizzes/{{quiz_id}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Java Basics (edited)\",\n  \"description\": \"Вікторина для першого заняття\",\n  \"status\": \"DRAFT\",\n  \"questions\": [\n    {\n      \"text\": \"Яка версія Java ввела virtual threads як фінальну фічу?\",\n      \"timeLimitSeconds\": 15,\n      \"points\": 1000,\n      \"correctOption\": 1,\n      \"options\": [\n        \"Java 17\",\n        \"Java 21\",\n        \"Java 11\",\n        \"Java 8\"\n      ]\n    }\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 GET /api/admin/ping host -> 403 (FilterChain)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_host}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/admin/ping",
+          "host": [
+            "{{base}}/api/admin/ping"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9 GET /api/admin/ping admin -> 200",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/admin/ping",
+          "host": [
+            "{{base}}/api/admin/ping"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 DELETE host -> 403 (@PreAuthorize)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_host}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/quizzes/{{quiz_id}}",
+          "host": [
+            "{{base}}/api/quizzes/{{quiz_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 DELETE admin -> 204",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/quizzes/{{quiz_id}}",
+          "host": [
+            "{{base}}/api/quizzes/{{quiz_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 GET after delete -> 404",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/api/quizzes/{{quiz_id}}",
+          "host": [
+            "{{base}}/api/quizzes/{{quiz_id}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
