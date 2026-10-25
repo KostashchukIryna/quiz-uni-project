@@ -1,0 +1,50 @@
+{
+  "realm": "quizplatform",
+  "enabled": true,
+  "accessTokenLifespan": 3600,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      { "name": "HOST", "description": "Creates and edits quizzes" },
+      { "name": "ADMIN", "description": "Deletes quizzes, admin area" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "quiz-ui",
+      "name": "QuizPlatform UI",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "quiz-ui-dev-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [ "http://localhost:8081/login/oauth2/code/keycloak" ],
+      "webOrigins": [ "http://localhost:8081" ],
+      "attributes": { "post.logout.redirect.uris": "http://localhost:8081/*" }
+    },
+    {
+      "clientId": "quiz-postman",
+      "name": "QuizPlatform Postman",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "host1", "enabled": true, "email": "host1@example.com",
+      "firstName": "Host", "lastName": "One",
+      "credentials": [ { "type": "password", "value": "host123", "temporary": false } ],
+      "realmRoles": [ "HOST" ]
+    },
+    {
+      "username": "admin1", "enabled": true, "email": "admin1@example.com",
+      "firstName": "Admin", "lastName": "One",
+      "credentials": [ { "type": "password", "value": "admin123", "temporary": false } ],
+      "realmRoles": [ "HOST", "ADMIN" ]
+    }
+  ]
+}

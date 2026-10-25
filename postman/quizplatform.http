@@ -1,0 +1,122 @@
+### QuizPlatform Lab 1 — run requests top to bottom (IntelliJ HTTP Client).
+### Requires: app on :8081, Keycloak on :8080 (mvn spring-boot:run).
+### Tokens and quiz id are stored by response handlers in global variables.
+
+@base = http://localhost:8081
+@kc = http://localhost:8080
+
+### 1. Token for host1 (HOST)
+POST {{kc}}/realms/quizplatform/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=quiz-postman&username=host1&password=host123
+
+> {%
+    client.test("200", () => client.assert(response.status === 200));
+    client.global.set("token_host", response.body.access_token);
+%}
+
+### 2. Token for admin1 (HOST + ADMIN)
+POST {{kc}}/realms/quizplatform/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&client_id=quiz-postman&username=admin1&password=admin123
+
+> {%
+    client.test("200", () => client.assert(response.status === 200));
+    client.global.set("token_admin", response.body.access_token);
+%}
+
+### 3. POST without token -> 401
+POST {{base}}/api/quizzes
+Content-Type: application/json
+
+{ "title": "No token", "questions": [] }
+
+> {% client.test("401", () => client.assert(response.status === 401)); %}
+
+### 4. GET list (public) -> 200
+GET {{base}}/api/quizzes
+
+> {% client.test("200", () => client.assert(response.status === 200)); %}
+
+### 5. POST create (host) -> 201
+POST {{base}}/api/quizzes
+Authorization: Bearer {{token_host}}
+Content-Type: application/json
+
+{
+  "title": "Java Basics",
+  "description": "Вікторина для першого заняття",
+  "status": "DRAFT",
+  "questions": [
+    {
+      "text": "Яка версія Java ввела virtual threads як фінальну фічу?",
+      "timeLimitSeconds": 15,
+      "points": 1000,
+      "correctOption": 1,
+      "options": ["Java 17", "Java 21", "Java 11", "Java 8"]
+    }
+  ]
+}
+
+> {%
+    client.test("201", () => client.assert(response.status === 201));
+    client.global.set("quiz_id", response.body.id);
+%}
+
+### 6. GET by id -> 200
+GET {{base}}/api/quizzes/{{quiz_id}}
+
+> {% client.test("200", () => client.assert(response.status === 200)); %}
+
+### 7. PUT update (host) -> 200
+PUT {{base}}/api/quizzes/{{quiz_id}}
+Authorization: Bearer {{token_host}}
+Content-Type: application/json
+
+{
+  "title": "Java Basics (edited)",
+  "description": "Вікторина для першого заняття",
+  "status": "DRAFT",
+  "questions": [
+    {
+      "text": "Яка версія Java ввела virtual threads як фінальну фічу?",
+      "timeLimitSeconds": 15,
+      "points": 1000,
+      "correctOption": 1,
+      "options": ["Java 17", "Java 21", "Java 11", "Java 8"]
+    }
+  ]
+}
+
+> {% client.test("200", () => client.assert(response.status === 200)); %}
+
+### 8. /api/admin/ping as host -> 403 (SecurityFilterChain rule)
+GET {{base}}/api/admin/ping
+Authorization: Bearer {{token_host}}
+
+> {% client.test("403", () => client.assert(response.status === 403)); %}
+
+### 9. /api/admin/ping as admin -> 200
+GET {{base}}/api/admin/ping
+Authorization: Bearer {{token_admin}}
+
+> {% client.test("200", () => client.assert(response.status === 200)); %}
+
+### 10. DELETE as host -> 403 (@PreAuthorize)
+DELETE {{base}}/api/quizzes/{{quiz_id}}
+Authorization: Bearer {{token_host}}
+
+> {% client.test("403", () => client.assert(response.status === 403)); %}
+
+### 11. DELETE as admin -> 204
+DELETE {{base}}/api/quizzes/{{quiz_id}}
+Authorization: Bearer {{token_admin}}
+
+> {% client.test("204", () => client.assert(response.status === 204)); %}
+
+### 12. GET after delete -> 404
+GET {{base}}/api/quizzes/{{quiz_id}}
+
+> {% client.test("404", () => client.assert(response.status === 404)); %}
