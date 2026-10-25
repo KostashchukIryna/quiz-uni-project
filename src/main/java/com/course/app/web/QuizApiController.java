@@ -2,11 +2,11 @@ package com.course.app.web;
 
 import com.course.app.dto.QuizDto;
 import com.course.app.service.QuizService;
+import com.course.app.web.annotation.CurrentUsername;
+import com.course.app.web.annotation.PostCreated;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,10 +29,9 @@ public class QuizApiController {
         return service.findById(id);
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public QuizDto create(@Valid @RequestBody QuizDto dto, @AuthenticationPrincipal Jwt jwt) {
-        return service.create(dto, jwt.getClaimAsString("preferred_username"));
+    @PostCreated
+    public QuizDto create(@Valid @RequestBody QuizDto dto, @CurrentUsername String username) {
+        return service.create(dto, username);
     }
 
     @PutMapping("/{id}")

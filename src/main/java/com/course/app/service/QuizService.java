@@ -51,7 +51,7 @@ public class QuizService {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public void delete(UUID id) {
-        // repo.delete(get(id));
+        repo.delete(get(id));
     }
 
     private Quiz get(UUID id) {

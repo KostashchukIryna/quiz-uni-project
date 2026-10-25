@@ -8,12 +8,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,16 +51,14 @@ class QuizApiControllerTest {
     }
 
     @Test
-    void create_authenticatedHost_passesUsernameFromJwtToService() {
+    void create_authenticatedHost_passesResolvedUsernameToService() {
         // Arrange
         QuizDto input = dto(null);
         QuizDto created = dto(UUID.randomUUID());
-        Jwt jwt = new Jwt("t", Instant.now(), Instant.now().plusSeconds(60),
-                Map.of("alg", "none"), Map.of("preferred_username", "host1"));
         when(service.create(input, "host1")).thenReturn(created);
 
         // Act
-        QuizDto result = controller.create(input, jwt);
+        QuizDto result = controller.create(input, "host1");
 
         // Assert
         verify(service).create(input, "host1");
