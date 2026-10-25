@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>QuizPlatform</title></head>
+<body>
+<h1>Квізи</h1>
+<div>Користувач: <b th:text="${#authentication.name}"></b>
+    <form th:action="@{/logout}" method="post" style="display:inline"><button>Вийти</button></form>
+</div>
+
+<h3>Створити</h3>
+<form th:action="@{/ui/quizzes}" method="post">
+    <input name="title" placeholder="Назва" required>
+    <input name="description" placeholder="Опис">
+    <button>Створити</button>
+</form>
+
+<table border="1" cellpadding="6">
+    <tr><th>Назва</th><th>Опис</th><th>Статус</th><th>Автор</th><th>Дії</th></tr>
+    <tr th:each="q : ${quizzes}">
+        <td colspan="4">
+            <form th:action="@{/ui/quizzes/{id}/update(id=${q.id})}" method="post">
+                <input name="title" th:value="${q.title}">
+                <input name="description" th:value="${q.description}">
+                <span th:text="${q.status}"></span> /
+                <span th:text="${q.createdBy}"></span>
+                <button>Зберегти</button>
+            </form>
+        </td>
+        <td>
+            <form th:action="@{/ui/quizzes/{id}/delete(id=${q.id})}" method="post">
+                <button>Видалити</button>
+            </form>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

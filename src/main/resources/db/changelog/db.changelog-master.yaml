@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-quiz
+      author: student
+      changes:
+        - createTable:
+            tableName: quiz
+            columns:
+              - column: { name: id, type: UUID, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: title, type: VARCHAR(200), constraints: { nullable: false } }
+              - column: { name: description, type: VARCHAR(1000) }
+              - column: { name: status, type: VARCHAR(20), constraints: { nullable: false } }
+              - column: { name: created_by, type: VARCHAR(100), constraints: { nullable: false } }
+              - column: { name: created_at, type: TIMESTAMP, constraints: { nullable: false } }
+  - changeSet:
+      id: 002-create-question
+      author: student
+      changes:
+        - createTable:
+            tableName: question
+            columns:
+              - column: { name: id, type: UUID, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: quiz_id, type: UUID, constraints: { nullable: false, foreignKeyName: fk_question_quiz, references: quiz(id), deleteCascade: true } }
+              - column: { name: text, type: VARCHAR(500), constraints: { nullable: false } }
+              - column: { name: time_limit_seconds, type: INT, constraints: { nullable: false } }
+              - column: { name: points, type: INT, constraints: { nullable: false } }
+              - column: { name: correct_option, type: INT, constraints: { nullable: false } }
+        - createTable:
+            tableName: question_option
+            columns:
+              - column: { name: question_id, type: UUID, constraints: { nullable: false, foreignKeyName: fk_option_question, references: question(id), deleteCascade: true } }
+              - column: { name: option_text, type: VARCHAR(300), constraints: { nullable: false } }
+              - column: { name: position, type: INT, constraints: { nullable: false } }
