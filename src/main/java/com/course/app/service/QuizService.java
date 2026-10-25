@@ -1,6 +1,10 @@
 package com.course.app.service;
 
+import com.course.app.aop.Audited;
+import com.course.app.aop.RateLimited;
+import com.course.app.aop.TranslateConflict;
 import com.course.app.domain.Quiz;
+import com.course.app.domain.QuizStatus;
 import com.course.app.dto.QuizDto;
 import com.course.app.mapper.QuizMapper;
 import com.course.app.repository.QuizRepository;
@@ -32,6 +36,9 @@ public class QuizService {
     }
 
     @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @RateLimited(maxCalls = 10, perSeconds = 60)
+    @TranslateConflict
+    @Audited(action = "CREATE_QUIZ")
     @Transactional
     public QuizDto create(QuizDto dto, String username) {
         Quiz quiz = mapper.toEntity(dto);
@@ -40,6 +47,8 @@ public class QuizService {
     }
 
     @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @TranslateConflict
+    @Audited(action = "UPDATE_QUIZ")
     @Transactional
     public QuizDto update(UUID id, QuizDto dto) {
         Quiz quiz = get(id);
@@ -47,8 +56,24 @@ public class QuizService {
         return mapper.toDto(quiz);
     }
 
+    /**
+     * Self-invocation demo (lab 4): this method is audited when called through the Spring proxy
+     * (e.g. from the controller), but its call to {@code this.create(...)} bypasses the proxy, so
+     * {@code create}'s @RateLimited / @TranslateConflict / @Audited do NOT run for the copy. Intentional.
+     */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @Audited(action = "DUPLICATE_QUIZ")
+    @Transactional
+    public QuizDto duplicate(UUID id, String username) {
+        QuizDto source = findById(id);
+        QuizDto copy = new QuizDto(null, source.title() + " (copy)", source.description(),
+                QuizStatus.DRAFT, null, null, source.questions());
+        return create(copy, username);
+    }
+
     // The filter chain does not restrict DELETE by role - only this annotation does.
     @PreAuthorize("hasRole('ADMIN')")
+    @Audited(action = "DELETE_QUIZ")
     @Transactional
     public void delete(UUID id) {
         repo.delete(get(id));

@@ -34,6 +34,11 @@ public class QuizApiController {
         return service.create(dto, username);
     }
 
+    @PostCreated("/{id}/duplicate")
+    public QuizDto duplicate(@PathVariable UUID id, @CurrentUsername String username) {
+        return service.duplicate(id, username);
+    }
+
     @PutMapping("/{id}")
     public QuizDto update(@PathVariable UUID id, @Valid @RequestBody QuizDto dto) {
         return service.update(id, dto);

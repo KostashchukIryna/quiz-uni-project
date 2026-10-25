@@ -91,4 +91,19 @@ class QuizApiControllerTest {
         // Assert
         verify(service).delete(id);
     }
+
+    @Test
+    void duplicate_existingQuiz_delegatesWithIdAndUsername() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        QuizDto copy = dto(UUID.randomUUID());
+        when(service.duplicate(id, "host1")).thenReturn(copy);
+
+        // Act
+        QuizDto result = controller.duplicate(id, "host1");
+
+        // Assert
+        assertThat(result).isSameAs(copy);
+        verify(service).duplicate(id, "host1");
+    }
 }
