@@ -1,6 +1,8 @@
 package com.course.app.web;
 
+import com.course.app.async.QuizReportService;
 import com.course.app.dto.QuizDto;
+import com.course.app.dto.QuizReport;
 import com.course.app.service.QuizService;
 import com.course.app.web.annotation.CurrentUsername;
 import com.course.app.web.annotation.PostCreated;
@@ -18,6 +20,7 @@ import java.util.UUID;
 public class QuizApiController {
 
     private final QuizService service;
+    private final QuizReportService reportService;
 
     @GetMapping
     public List<QuizDto> list() {
@@ -27,6 +30,11 @@ public class QuizApiController {
     @GetMapping("/{id}")
     public QuizDto get(@PathVariable UUID id) {
         return service.findById(id);
+    }
+
+    @GetMapping("/{id}/report")
+    public QuizReport report(@PathVariable UUID id) {
+        return reportService.buildReport(id);
     }
 
     @PostCreated

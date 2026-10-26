@@ -1,6 +1,7 @@
 package com.course.app.service;
 
 import com.course.app.aop.Audited;
+import com.course.app.async.QuizNotificationService;
 import com.course.app.aop.RateLimited;
 import com.course.app.aop.TranslateConflict;
 import com.course.app.domain.Quiz;
@@ -24,6 +25,7 @@ public class QuizService {
 
     private final QuizRepository repo;
     private final QuizMapper mapper;
+    private final QuizNotificationService notifications;
 
     @Transactional(readOnly = true)
     public List<QuizDto> findAll() {
@@ -43,7 +45,9 @@ public class QuizService {
     public QuizDto create(QuizDto dto, String username) {
         Quiz quiz = mapper.toEntity(dto);
         quiz.setCreatedBy(username);
-        return mapper.toDto(repo.save(quiz));
+        QuizDto saved = mapper.toDto(repo.save(quiz));
+        notifications.sendQuizCreatedEmail(username, saved.title()); // fire-and-forget, returns immediately
+        return saved;
     }
 
     @PreAuthorize("hasAnyRole('HOST','ADMIN')")

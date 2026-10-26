@@ -42,7 +42,7 @@ class SelfInvocationTest {
         auditLog = mock(AuditLog.class);
         Clock clock = Clock.systemUTC();
 
-        AspectJProxyFactory factory = new AspectJProxyFactory(new QuizService(repo, mapper));
+        AspectJProxyFactory factory = new AspectJProxyFactory(new QuizService(repo, mapper, mock(com.course.app.async.QuizNotificationService.class)));
         factory.setProxyTargetClass(true);
         factory.addAspect(new AuditAspect(auditLog, clock));
         factory.addAspect(new RateLimitAspect(clock));

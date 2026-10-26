@@ -23,6 +23,8 @@ class QuizApiControllerTest {
 
     @Mock
     private QuizService service;
+    @Mock
+    private com.course.app.async.QuizReportService reportService;
     @InjectMocks
     private QuizApiController controller;
 

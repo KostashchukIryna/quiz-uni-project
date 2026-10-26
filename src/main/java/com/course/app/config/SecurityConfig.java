@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // the report triggers expensive async work, so it is not public
+                        .requestMatchers(HttpMethod.GET, "/api/quizzes/*/report").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/quizzes/**").permitAll()
                         // POST/PUT/DELETE on /api/quizzes/** are intentionally not restricted by role here:
                         // roles are enforced by @PreAuthorize in QuizService.

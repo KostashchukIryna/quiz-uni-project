@@ -1,5 +1,6 @@
 package com.course.app.service;
 
+import com.course.app.async.QuizNotificationService;
 import com.course.app.domain.Quiz;
 import com.course.app.domain.QuizStatus;
 import com.course.app.dto.QuizDto;
@@ -31,6 +32,8 @@ class QuizServiceTest {
     private QuizRepository repo;
     @Mock
     private QuizMapper mapper;
+    @Mock
+    private QuizNotificationService notifications;
     @InjectMocks
     private QuizService service;
 
@@ -127,6 +130,23 @@ class QuizServiceTest {
     }
 
     @Test
+    void create_validDto_triggersFireAndForgetEmailWithUserAndTitle() {
+        // Arrange
+        QuizDto input = dto(null, "new quiz");
+        QuizDto output = dto(UUID.randomUUID(), "new quiz");
+        Quiz entity = new Quiz();
+        when(mapper.toEntity(input)).thenReturn(entity);
+        when(repo.save(entity)).thenReturn(entity);
+        when(mapper.toDto(entity)).thenReturn(output);
+
+        // Act
+        service.create(input, "host1");
+
+        // Assert
+        verify(notifications).sendQuizCreatedEmail("host1", "new quiz");
+    }
+
+    @Test
     void create_repositoryFails_propagatesExceptionAndReturnsNothing() {
         // Arrange
         QuizDto input = dto(null, "broken");
@@ -139,6 +159,7 @@ class QuizServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("db down");
         verify(mapper, never()).toDto(any(Quiz.class));
+        verifyNoInteractions(notifications);
     }
 
     // ---------- update ----------

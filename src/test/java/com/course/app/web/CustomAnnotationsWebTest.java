@@ -63,12 +63,14 @@ class CustomAnnotationsWebTest {
 
     @Mock
     private QuizService service;
+    @Mock
+    private com.course.app.async.QuizReportService reportService;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders
-                .standaloneSetup(new QuizApiController(service), new ComposedController(), new OriginalController())
+                .standaloneSetup(new QuizApiController(service, reportService), new ComposedController(), new OriginalController())
                 .setCustomArgumentResolvers(new CurrentUsernameArgumentResolver())
                 .build();
     }
