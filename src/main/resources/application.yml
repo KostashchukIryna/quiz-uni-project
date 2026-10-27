@@ -1,0 +1,52 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: quizplatform
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/quizplatform
+    username: quiz
+    password: quiz
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # schema is created only by Liquibase
+    open-in-view: false
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: quiz-ui
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:quiz-ui-dev-secret}
+            scope: openid,profile,email
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            # explicit endpoints (no issuer discovery) so the app can start before Keycloak is ready
+            authorization-uri: http://localhost:8080/realms/quizplatform/protocol/openid-connect/auth
+            token-uri: http://localhost:8080/realms/quizplatform/protocol/openid-connect/token
+            user-info-uri: http://localhost:8080/realms/quizplatform/protocol/openid-connect/userinfo
+            jwk-set-uri: http://localhost:8080/realms/quizplatform/protocol/openid-connect/certs
+            user-name-attribute: preferred_username
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/quizplatform
+
+  docker:
+    compose:
+      enabled: true
+      lifecycle-management: start-and-stop
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
