@@ -1,0 +1,49 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: scheduler-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/quizplatform}
+    username: ${DB_USER:quiz}
+    password: ${DB_PASSWORD:quiz}
+
+  jpa:
+    hibernate:
+      ddl-auto: none        # the quiz tables belong to quiz-service, this service creates its own tables with Liquibase only
+    open-in-view: false
+
+  liquibase:
+    change-log: classpath:db/changelog/scheduler-changelog.yaml
+    # same database as quiz-service, so this service keeps its own Liquibase bookkeeping tables
+    database-change-log-table: DATABASECHANGELOG_SCHEDULER
+    database-change-log-lock-table: DATABASECHANGELOGLOCK_SCHEDULER
+
+  quartz:
+    job-store-type: jdbc                         # memory = RAMJobStore: the schedule would die with the JVM
+    jdbc:
+      initialize-schema: never                   # Liquibase owns the QRTZ_* tables (changeset 003)
+    overwrite-existing-jobs: true                # QuartzConfig is the source of truth at every startup
+    wait-for-jobs-to-complete-on-shutdown: true
+    properties:
+      org:
+        quartz:
+          threadPool:
+            threadCount: 3
+          jobStore:
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            misfireThreshold: 10000              # ms. Quartz default is 60000, shortened so a misfire demo takes seconds
+
+  docker:
+    compose:
+      file: ../compose.yaml                      # one compose file at the repo root, shared by both services
+      enabled: true
+      lifecycle-management: start-only           # both services use it: stopping one must not stop the database
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

@@ -1,0 +1,35 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-host-rating
+      author: student
+      changes:
+        - createTable:
+            tableName: host_rating
+            columns:
+              - column: { name: period, type: VARCHAR(30), constraints: { primaryKey: true, primaryKeyName: pk_host_rating, nullable: false } }
+              - column: { name: username, type: VARCHAR(100), constraints: { primaryKey: true, primaryKeyName: pk_host_rating, nullable: false } }
+              - column: { name: quizzes_total, type: INT, constraints: { nullable: false } }
+              - column: { name: published_total, type: INT, constraints: { nullable: false } }
+              - column: { name: questions_total, type: INT, constraints: { nullable: false } }
+              - column: { name: score, type: INT, constraints: { nullable: false } }
+              - column: { name: computed_at, type: TIMESTAMP, constraints: { nullable: false } }
+  - changeSet:
+      id: 002-create-draft-reminder
+      author: student
+      changes:
+        - createTable:
+            tableName: draft_reminder
+            columns:
+              - column: { name: quiz_id, type: UUID, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: reminded_at, type: TIMESTAMP, constraints: { nullable: false } }
+  # Liquibase owns the Quartz schema (spring.quartz.jdbc.initialize-schema = never).
+  # DDL is Quartz's own tables_postgres.sql taken from the quartz jar, with the DROP TABLE lines removed.
+  - changeSet:
+      id: 003-create-quartz-tables
+      author: student
+      changes:
+        - sqlFile:
+            path: db/quartz/tables_postgres.sql
+            relativeToChangelogFile: false
+            splitStatements: true
+            endDelimiter: ";"
