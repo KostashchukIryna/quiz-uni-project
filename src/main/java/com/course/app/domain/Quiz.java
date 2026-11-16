@@ -34,6 +34,9 @@ public class Quiz {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "reminded_at")
+    private Instant remindedAt;
+
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions = new ArrayList<>();
 

@@ -23,4 +23,10 @@ public class QuizNotificationService {
         slowWork.perform("email");
         log.info("Email sent to {}: quiz '{}' was created", recipient, quizTitle);
     }
+
+    @Async(AsyncConfig.NOTIFICATION_EXECUTOR)
+    public void sendDraftReminderEmail(String recipient, String quizTitle) {
+        slowWork.perform("email");
+        log.info("Email sent to {}: draft '{}' has not been published yet", recipient, quizTitle);
+    }
 }

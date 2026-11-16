@@ -40,6 +40,21 @@ spring:
         jwt:
           issuer-uri: http://localhost:8080/realms/quizplatform
 
+  quartz:
+    job-store-type: jdbc                         # memory = RAMJobStore: the schedule would die with the JVM
+    jdbc:
+      initialize-schema: never                   # Liquibase owns the QRTZ_* tables (changeset 005)
+    overwrite-existing-jobs: true                # QuartzConfig is the source of truth at every startup
+    wait-for-jobs-to-complete-on-shutdown: true
+    properties:
+      org:
+        quartz:
+          threadPool:
+            threadCount: 3
+          jobStore:
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            misfireThreshold: 10000              # ms. Quartz default is 60000, shortened so a misfire demo takes seconds
+
   docker:
     compose:
       enabled: true

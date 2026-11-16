@@ -15,11 +15,13 @@ public interface QuizMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "remindedAt", ignore = true)
     Quiz toEntity(QuizDto dto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "remindedAt", ignore = true)
     void update(QuizDto dto, @MappingTarget Quiz quiz);
 
     /** The generated update() fills the existing collection in place, so restore the back-reference. */

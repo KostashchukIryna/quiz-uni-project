@@ -31,3 +31,34 @@ databaseChangeLog:
               - column: { name: question_id, type: UUID, constraints: { nullable: false, foreignKeyName: fk_option_question, references: question(id), deleteCascade: true } }
               - column: { name: option_text, type: VARCHAR(300), constraints: { nullable: false } }
               - column: { name: position, type: INT, constraints: { nullable: false } }
+  - changeSet:
+      id: 003-create-host-rating
+      author: student
+      changes:
+        - createTable:
+            tableName: host_rating
+            columns:
+              - column: { name: period, type: VARCHAR(30), constraints: { primaryKey: true, primaryKeyName: pk_host_rating, nullable: false } }
+              - column: { name: username, type: VARCHAR(100), constraints: { primaryKey: true, primaryKeyName: pk_host_rating, nullable: false } }
+              - column: { name: quizzes_total, type: INT, constraints: { nullable: false } }
+              - column: { name: published_total, type: INT, constraints: { nullable: false } }
+              - column: { name: questions_total, type: INT, constraints: { nullable: false } }
+              - column: { name: score, type: INT, constraints: { nullable: false } }
+              - column: { name: computed_at, type: TIMESTAMP, constraints: { nullable: false } }
+  - changeSet:
+      id: 004-add-quiz-reminded-at
+      author: student
+      changes:
+        - addColumn:
+            tableName: quiz
+            columns:
+              - column: { name: reminded_at, type: TIMESTAMP }
+  - changeSet:
+      id: 005-create-quartz-tables
+      author: student
+      changes:
+        - sqlFile:
+            path: db/quartz/tables_postgres.sql
+            relativeToChangelogFile: false
+            splitStatements: true
+            endDelimiter: ";"
