@@ -2,6 +2,7 @@ package com.course.app.service;
 
 import com.course.app.async.QuizNotificationService;
 import com.course.app.domain.Quiz;
+import com.course.common.QuizEvent;
 import com.course.common.QuizStatus;
 import com.course.app.dto.QuizDto;
 import com.course.app.mapper.QuizMapper;
@@ -12,10 +13,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +40,10 @@ class QuizServiceTest {
     private QuizMapper mapper;
     @Mock
     private QuizNotificationService notifications;
+    @Mock
+    private ApplicationEventPublisher events;
+    @Spy
+    private Clock clock = Clock.fixed(Instant.parse("2026-11-17T10:00:00Z"), ZoneOffset.UTC);
     @InjectMocks
     private QuizService service;
 
@@ -224,5 +234,142 @@ class QuizServiceTest {
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
         verify(repo, never()).delete(any(Quiz.class));
+    }
+
+    // ---------- events (lab 8) ----------
+
+    private List<QuizEvent> publishedEvents() {
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(events, atLeast(0)).publishEvent(captor.capture());
+        return captor.getAllValues().stream().map(QuizEvent.class::cast).toList();
+    }
+
+    @Test
+    void create_validDto_publishesExactlyOneQuizCreatedEvent() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        QuizDto input = dto(null, "new quiz");
+        QuizDto output = dto(id, "new quiz");
+        Quiz entity = new Quiz();
+        when(mapper.toEntity(input)).thenReturn(entity);
+        when(repo.save(entity)).thenReturn(entity);
+        when(mapper.toDto(entity)).thenReturn(output);
+
+        // Act
+        service.create(input, "host1");
+
+        // Assert
+        assertThat(publishedEvents()).singleElement().satisfies(e -> {
+            assertThat(e.type()).isEqualTo(QuizEvent.Type.QUIZ_CREATED);
+            assertThat(e.quizId()).isEqualTo(id);
+            assertThat(e.title()).isEqualTo("new quiz");
+            assertThat(e.host()).isEqualTo("host1");
+            assertThat(e.occurredAt()).isEqualTo(Instant.parse("2026-11-17T10:00:00Z"));
+            assertThat(e.eventId()).isNotNull();
+        });
+    }
+
+    @Test
+    void create_repositoryFails_publishesNoEvent() {
+        // Arrange
+        QuizDto input = dto(null, "broken");
+        Quiz entity = new Quiz();
+        when(mapper.toEntity(input)).thenReturn(entity);
+        when(repo.save(entity)).thenThrow(new IllegalStateException("db down"));
+
+        // Act
+        assertThatThrownBy(() -> service.create(input, "host1")).isInstanceOf(IllegalStateException.class);
+
+        // Assert
+        verifyNoInteractions(events);
+    }
+
+    @Test
+    void update_draftBecomesPublished_publishesQuizPublishedEventForTheOwner() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Quiz quiz = new Quiz();
+        quiz.setTitle("Java");
+        quiz.setCreatedBy("host1");
+        quiz.setStatus(QuizStatus.DRAFT);
+        QuizDto input = dto(id, "Java");
+        when(repo.findById(id)).thenReturn(Optional.of(quiz));
+        doAnswer(call -> {
+            quiz.setStatus(QuizStatus.PUBLISHED);
+            return null;
+        }).when(mapper).update(input, quiz);
+
+        // Act
+        service.update(id, input);
+
+        // Assert
+        assertThat(publishedEvents()).singleElement().satisfies(e -> {
+            assertThat(e.type()).isEqualTo(QuizEvent.Type.QUIZ_PUBLISHED);
+            assertThat(e.title()).isEqualTo("Java");
+            assertThat(e.host()).isEqualTo("host1");
+        });
+    }
+
+    @Test
+    void update_statusUnchanged_publishesNoEvent() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Quiz quiz = new Quiz();
+        quiz.setStatus(QuizStatus.DRAFT);
+        when(repo.findById(id)).thenReturn(Optional.of(quiz));
+
+        // Act
+        service.update(id, dto(id, "only the title changed"));
+
+        // Assert
+        verifyNoInteractions(events);
+    }
+
+    @Test
+    void update_alreadyPublishedQuiz_publishesNoSecondPublishedEvent() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Quiz quiz = new Quiz();
+        quiz.setStatus(QuizStatus.PUBLISHED);
+        when(repo.findById(id)).thenReturn(Optional.of(quiz));
+
+        // Act
+        service.update(id, dto(id, "edited again"));
+
+        // Assert
+        verifyNoInteractions(events);
+    }
+
+    @Test
+    void delete_existingQuiz_publishesQuizDeletedEventForTheOwner() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Quiz quiz = new Quiz();
+        quiz.setTitle("Old quiz");
+        quiz.setCreatedBy("host2");
+        when(repo.findById(id)).thenReturn(Optional.of(quiz));
+
+        // Act
+        service.delete(id);
+
+        // Assert
+        assertThat(publishedEvents()).singleElement().satisfies(e -> {
+            assertThat(e.type()).isEqualTo(QuizEvent.Type.QUIZ_DELETED);
+            assertThat(e.title()).isEqualTo("Old quiz");
+            assertThat(e.host()).isEqualTo("host2");
+        });
+    }
+
+    @Test
+    void delete_missingQuiz_publishesNoEvent() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        when(repo.findById(id)).thenReturn(Optional.empty());
+
+        // Act
+        assertThatThrownBy(() -> service.delete(id)).isInstanceOf(ResponseStatusException.class);
+
+        // Assert
+        verifyNoInteractions(events);
     }
 }

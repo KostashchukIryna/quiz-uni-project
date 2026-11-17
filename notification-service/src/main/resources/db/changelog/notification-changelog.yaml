@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-notification
+      author: student
+      changes:
+        - createTable:
+            tableName: notification
+            columns:
+              - column: { name: id, type: UUID, constraints: { primaryKey: true, nullable: false } }
+              # unique: the consumer recognizes an event it has already processed by this id
+              - column: { name: event_id, type: UUID, constraints: { nullable: false, unique: true, uniqueConstraintName: uq_notification_event_id } }
+              - column: { name: recipient, type: VARCHAR(100), constraints: { nullable: false } }
+              - column: { name: type, type: VARCHAR(30), constraints: { nullable: false } }
+              - column: { name: quiz_id, type: UUID, constraints: { nullable: false } }
+              - column: { name: message, type: VARCHAR(500), constraints: { nullable: false } }
+              - column: { name: occurred_at, type: TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: received_at, type: TIMESTAMP, constraints: { nullable: false } }
+        - createIndex:
+            tableName: notification
+            indexName: idx_notification_recipient
+            columns:
+              - column: { name: recipient }

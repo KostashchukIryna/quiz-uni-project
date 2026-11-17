@@ -1,0 +1,62 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: notification-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/quizplatform}
+    username: ${DB_USER:quiz}
+    password: ${DB_PASSWORD:quiz}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate    # the schema is created only by Liquibase
+    open-in-view: false
+
+  liquibase:
+    change-log: classpath:db/changelog/notification-changelog.yaml
+    # same database as the other services, so this service keeps its own Liquibase bookkeeping tables
+    database-change-log-table: DATABASECHANGELOG_NOTIFICATION
+    database-change-log-lock-table: DATABASECHANGELOGLOCK_NOTIFICATION
+
+  rabbitmq:
+    # In Docker the host is the compose service name (RABBITMQ_HOST=rabbitmq); from the IDE it defaults to localhost.
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false          # a message that keeps failing goes to the dead-letter queue, not back
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+          multiplier: 2
+          max-interval: 5s
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # tokens carry the address the browser used (issuer); a container fetches the keys from the compose service name
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/quizplatform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/quizplatform/protocol/openid-connect/certs}
+
+  docker:
+    compose:
+      file: ../compose.yaml                      # one compose file at the repo root, shared by all services
+      enabled: true
+      lifecycle-management: start-only           # several services use it: stopping one must not stop the database
+
+app:
+  messaging:
+    queue: notification.quiz-events              # created by the broker from rabbitmq/definitions.json
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

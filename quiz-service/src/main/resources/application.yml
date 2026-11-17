@@ -18,6 +18,17 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+  rabbitmq:
+    # In Docker the host is the compose service name (RABBITMQ_HOST=rabbitmq); from the IDE it defaults to localhost.
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    publisher-confirm-type: correlated           # the broker confirms every publish, a nack is logged
+    publisher-returns: true                      # an unroutable event comes back and is logged
+    template:
+      mandatory: true
+
   security:
     oauth2:
       client:
@@ -32,13 +43,15 @@ spring:
           keycloak:
             # explicit endpoints (no issuer discovery) so the app can start before Keycloak is ready
             authorization-uri: http://localhost:8080/realms/quizplatform/protocol/openid-connect/auth
-            token-uri: http://localhost:8080/realms/quizplatform/protocol/openid-connect/token
-            user-info-uri: http://localhost:8080/realms/quizplatform/protocol/openid-connect/userinfo
-            jwk-set-uri: http://localhost:8080/realms/quizplatform/protocol/openid-connect/certs
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://localhost:8080/realms/quizplatform/protocol/openid-connect/token}
+            user-info-uri: ${KEYCLOAK_USERINFO_URI:http://localhost:8080/realms/quizplatform/protocol/openid-connect/userinfo}
+            jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/quizplatform/protocol/openid-connect/certs}
             user-name-attribute: preferred_username
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/quizplatform
+          # tokens carry the address the browser used (issuer); a container fetches the keys from the compose service name
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/quizplatform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/quizplatform/protocol/openid-connect/certs}
 
   docker:
     compose:

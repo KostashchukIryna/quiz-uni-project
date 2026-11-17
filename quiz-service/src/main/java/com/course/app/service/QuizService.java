@@ -5,17 +5,20 @@ import com.course.app.async.QuizNotificationService;
 import com.course.app.aop.RateLimited;
 import com.course.app.aop.TranslateConflict;
 import com.course.app.domain.Quiz;
+import com.course.common.QuizEvent;
 import com.course.common.QuizStatus;
 import com.course.app.dto.QuizDto;
 import com.course.app.mapper.QuizMapper;
 import com.course.app.repository.QuizRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +29,8 @@ public class QuizService {
     private final QuizRepository repo;
     private final QuizMapper mapper;
     private final QuizNotificationService notifications;
+    private final ApplicationEventPublisher events;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<QuizDto> findAll() {
@@ -47,6 +52,7 @@ public class QuizService {
         quiz.setCreatedBy(username);
         QuizDto saved = mapper.toDto(repo.save(quiz));
         notifications.sendQuizCreatedEmail(username, saved.title()); // fire-and-forget, returns immediately
+        publish(QuizEvent.Type.QUIZ_CREATED, saved.id(), saved.title(), username);
         return saved;
     }
 
@@ -56,7 +62,11 @@ public class QuizService {
     @Transactional
     public QuizDto update(UUID id, QuizDto dto) {
         Quiz quiz = get(id);
+        QuizStatus before = quiz.getStatus();
         mapper.update(dto, quiz);
+        if (before != QuizStatus.PUBLISHED && quiz.getStatus() == QuizStatus.PUBLISHED) {
+            publish(QuizEvent.Type.QUIZ_PUBLISHED, quiz.getId(), quiz.getTitle(), quiz.getCreatedBy());
+        }
         return mapper.toDto(quiz);
     }
 
@@ -80,7 +90,17 @@ public class QuizService {
     @Audited(action = "DELETE_QUIZ")
     @Transactional
     public void delete(UUID id) {
-        repo.delete(get(id));
+        Quiz quiz = get(id);
+        repo.delete(quiz);
+        publish(QuizEvent.Type.QUIZ_DELETED, quiz.getId(), quiz.getTitle(), quiz.getCreatedBy());
+    }
+
+    /**
+     * Raised inside the transaction, delivered to the broker only after it commits
+     * (see {@code QuizEventPublisher}).
+     */
+    private void publish(QuizEvent.Type type, UUID quizId, String title, String host) {
+        events.publishEvent(QuizEvent.of(type, quizId, title, host, clock.instant()));
     }
 
     private Quiz get(UUID id) {
